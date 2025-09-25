@@ -16,17 +16,19 @@ app.use('/api/orders', require('./routes/orders'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Connect to DB before handling requests
-connectToDatabase().catch((err) => {
-  console.error('Failed to connect to database', err);
-  process.exit(1);
-});
+// Connect to DB once before handling requests
+connectToDatabase()
+  .then(() => console.log('✅ Database connected'))
+  .catch((err) => {
+    console.error('❌ Failed to connect to database', err);
+    process.exit(1);
+  });
 
-// Export for Vercel
+// ✅ Export app for Vercel (serverless)
 module.exports = app;
 
-// Only listen locally (not on Vercel)
+// ✅ Run normally when executed locally
 if (require.main === module) {
   const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => console.log(`🚀 API listening on http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`🚀 API running at http://localhost:${PORT}`));
 }
