@@ -22,14 +22,41 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Ensure DB connection before serving
-connectToDatabase().catch((err) => {
-  console.error('Failed to connect to database', err);
-  process.exit(1);
-});
-
 // Export Express app directly for Vercel
 module.exports = app;
+
+// Initialize database connection for Vercel
+let dbConnected = false;
+
+// Connect to database when the function is invoked
+async function initializeDatabase() {
+  if (!dbConnected) {
+    try {
+      await connectToDatabase();
+      dbConnected = true;
+      console.log('✅ Database connected successfully');
+    } catch (err) {
+      console.error('❌ Failed to connect to database:', err);
+      // Don't exit process in serverless environment
+      return false;
+    }
+  }
+  return true;
+}
+
+// Middleware to ensure database connection
+app.use(async (req, res, next) => {
+  if (!dbConnected) {
+    const connected = await initializeDatabase();
+    if (!connected) {
+      return res.status(500).json({ 
+        error: 'Database connection failed',
+        message: 'Unable to connect to the database'
+      });
+    }
+  }
+  next();
+});
 
 // Run locally (only when not serverless)
 if (require.main === module) {
