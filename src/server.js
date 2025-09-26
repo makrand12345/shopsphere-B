@@ -22,15 +22,19 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Serverless handler export
-module.exports = async (req, res) => {
-  try {
-    if (!global.db) {
-      global.db = await connectToDatabase();
-    }
-    app(req, res);
-  } catch (err) {
-    console.error('Database connection error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
+// Ensure DB connection before serving
+connectToDatabase().catch((err) => {
+  console.error('Failed to connect to database', err);
+  process.exit(1);
+});
+
+// Export Express app directly for Vercel
+module.exports = app;
+
+// Run locally (only when not serverless)
+if (require.main === module) {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () =>
+    console.log(`🚀 API listening locally at http://localhost:${PORT}`)
+  );
+}
