@@ -1,4 +1,7 @@
 require('dotenv').config();
+console.log('MONGO_URI:', process.env.MONGO_URI ? 'Exists' : 'Missing');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Exists' : 'Missing');
+
 const { connectToDatabase } = require('./config/db');
 const express = require('express');
 const cors = require('cors');
@@ -9,27 +12,9 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Routes
-
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({ status: 'Backend running', message: 'Welcome to ShopSphere API' });
-});
-
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
-
-// Export Express app directly for Vercel
-module.exports = app;
-
-// Initialize database connection for Vercel
+// Initialize database connection immediately
 let dbConnected = false;
 
-// Connect to database when the function is invoked
 async function initializeDatabase() {
   if (!dbConnected) {
     try {
@@ -38,7 +23,6 @@ async function initializeDatabase() {
       console.log('✅ Database connected successfully');
     } catch (err) {
       console.error('❌ Failed to connect to database:', err);
-      // Don't exit process in serverless environment
       return false;
     }
   }
@@ -58,6 +42,22 @@ app.use(async (req, res, next) => {
   }
   next();
 });
+
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/orders', require('./routes/orders'));
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ status: 'Backend running', message: 'Welcome to ShopSphere API' });
+});
+
+// Health check
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Export Express app directly for Vercel
+module.exports = app;
 
 // Run locally (only when not serverless)
 if (require.main === module) {
